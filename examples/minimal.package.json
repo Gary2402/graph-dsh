@@ -1,0 +1,73 @@
+{
+  "schema_version": "graph-runtime/1.0",
+  "title": "三节点入门示例",
+  "description": "合成算术示例，不构成投资建议。",
+  "graph": {
+    "inputs": [
+      {
+        "id": "quantity",
+        "label": "数量",
+        "unit": "件",
+        "value": {
+          "kind": "exact",
+          "value": 10
+        },
+        "control": {
+          "kind": "slider",
+          "min": 0,
+          "max": 100,
+          "step": 1
+        }
+      },
+      {
+        "id": "price",
+        "label": "单价",
+        "unit": "元/件",
+        "value": {
+          "kind": "exact",
+          "value": 20
+        },
+        "control": {
+          "kind": "slider",
+          "min": 0,
+          "max": 100,
+          "step": 1
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "revenue",
+        "label": "收入",
+        "op": "mul",
+        "args": [
+          "quantity",
+          "price"
+        ],
+        "unit": "元"
+      }
+    ]
+  },
+  "views": {
+    "cards": [
+      {
+        "id": "revenue-card",
+        "label": "收入",
+        "ref": "revenue",
+        "unit": "元"
+      }
+    ],
+    "graphs": [
+      {
+        "id": "revenue-graph",
+        "title": "收入计算依赖",
+        "ref": "revenue",
+        "max_depth": 3
+      }
+    ]
+  },
+  "metadata": {
+    "is_synthetic": true,
+    "notes": "数量×单价，所有输入均为演示假设。"
+  }
+}

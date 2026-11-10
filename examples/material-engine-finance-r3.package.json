@@ -1,0 +1,4004 @@
+{
+  "schema_version": "graph-runtime/1.0",
+  "title": "Material Engine Offline 财务推演复原 · 合成示例",
+  "description": "从原版 0.2.1 的真实运算追踪编译；2026-01-01 至 2026-03-31，CNY，amount_scale=1。本包只复原原版内置的 goods / turnover 单期间合成示例，不代表实际企业财报。不包含其他五类业务模型、可选机制、业务有效性拒绝、仅方向语义、事件筛选和多事件归因。精确值运算已对照；区间使用通用逐节点保守计算，不能保留原引擎共享符号消元，因此区间差值和未知值可能更宽或未知。基准输入修改后需自行核查会计可行性。滑杆变化为用户假设，原材料只支持初始 +10%。DAG 是原始运算追踪的可计算复原，布局与交互不是原版 UI 复制。",
+  "graph": {
+    "inputs": [
+      {
+        "id": "baseline.demand_volume",
+        "label": "基准 · 本期可成交需求量",
+        "unit": "units",
+        "value": {
+          "kind": "exact",
+          "value": 100
+        }
+      },
+      {
+        "id": "baseline.deliverable_volume",
+        "label": "基准 · 本期可交付量",
+        "unit": "units",
+        "value": {
+          "kind": "exact",
+          "value": 200
+        }
+      },
+      {
+        "id": "baseline.selling_price",
+        "label": "基准 · 本期单位净售价",
+        "unit": "currency_per_unit",
+        "value": {
+          "kind": "exact",
+          "value": 10
+        }
+      },
+      {
+        "id": "constant.3",
+        "label": "模型常数 0",
+        "unit": "",
+        "value": {
+          "kind": "exact",
+          "value": 0
+        }
+      },
+      {
+        "id": "baseline.unit_material_cost",
+        "label": "基准 · 单位材料销售成本",
+        "unit": "currency_per_unit",
+        "value": {
+          "kind": "exact",
+          "value": 4
+        }
+      },
+      {
+        "id": "baseline.unit_other_cost",
+        "label": "基准 · 单位其他销售成本",
+        "unit": "currency_per_unit",
+        "value": {
+          "kind": "exact",
+          "value": 2
+        }
+      },
+      {
+        "id": "baseline.fixed_cash_cost",
+        "label": "基准 · 固定经营费用",
+        "unit": "currency",
+        "value": {
+          "kind": "exact",
+          "value": 100
+        }
+      },
+      {
+        "id": "baseline.d_and_a",
+        "label": "基准 · 折旧摊销",
+        "unit": "currency",
+        "value": {
+          "kind": "exact",
+          "value": 20
+        }
+      },
+      {
+        "id": "baseline.penalty_expense",
+        "label": "基准 · 罚款费用",
+        "unit": "currency",
+        "value": {
+          "kind": "exact",
+          "value": 0
+        }
+      },
+      {
+        "id": "baseline.inventory_writeoff",
+        "label": "基准 · 存货减值",
+        "unit": "currency",
+        "value": {
+          "kind": "exact",
+          "value": 0
+        }
+      },
+      {
+        "id": "baseline.receivable_writeoff",
+        "label": "基准 · 应收减值",
+        "unit": "currency",
+        "value": {
+          "kind": "exact",
+          "value": 0
+        }
+      },
+      {
+        "id": "baseline.interest_expense",
+        "label": "基准 · 利息费用",
+        "unit": "currency",
+        "value": {
+          "kind": "exact",
+          "value": 10
+        }
+      },
+      {
+        "id": "baseline.penalty_tax_deductible_fraction",
+        "label": "基准 · 罚款可税前扣除比例",
+        "unit": "ratio",
+        "value": {
+          "kind": "exact",
+          "value": 0
+        }
+      },
+      {
+        "id": "baseline.inventory_writeoff_tax_deductible_fraction",
+        "label": "基准 · 存货损失可抵扣比例",
+        "unit": "ratio",
+        "value": {
+          "kind": "exact",
+          "value": 0
+        }
+      },
+      {
+        "id": "baseline.receivable_writeoff_tax_deductible_fraction",
+        "label": "基准 · 应收损失可抵扣比例",
+        "unit": "ratio",
+        "value": {
+          "kind": "exact",
+          "value": 0
+        }
+      },
+      {
+        "id": "baseline.tax_rate",
+        "label": "基准 · 当前所得税率",
+        "unit": "ratio",
+        "value": {
+          "kind": "exact",
+          "value": 0.25
+        }
+      },
+      {
+        "id": "baseline.opening_cash",
+        "label": "基准 · 期初现金",
+        "unit": "currency",
+        "value": {
+          "kind": "exact",
+          "value": 1000
+        }
+      },
+      {
+        "id": "baseline.dso",
+        "label": "基准 · 应收周转天数",
+        "unit": "days",
+        "value": {
+          "kind": "exact",
+          "value": 9
+        }
+      },
+      {
+        "id": "constant.18",
+        "label": "模型常数 90",
+        "unit": "",
+        "value": {
+          "kind": "exact",
+          "value": 90
+        }
+      },
+      {
+        "id": "baseline.opening_ar",
+        "label": "基准 · 期初应收账面净额",
+        "unit": "currency",
+        "value": {
+          "kind": "exact",
+          "value": 100
+        }
+      },
+      {
+        "id": "baseline.dio",
+        "label": "基准 · 存货周转天数",
+        "unit": "days",
+        "value": {
+          "kind": "exact",
+          "value": 18
+        }
+      },
+      {
+        "id": "baseline.opening_inventory",
+        "label": "基准 · 期初存货账面净额",
+        "unit": "currency",
+        "value": {
+          "kind": "exact",
+          "value": 100
+        }
+      },
+      {
+        "id": "baseline.dpo",
+        "label": "基准 · 应付周转天数",
+        "unit": "days",
+        "value": {
+          "kind": "exact",
+          "value": 9
+        }
+      },
+      {
+        "id": "baseline.opening_ap",
+        "label": "基准 · 期初经营应付",
+        "unit": "currency",
+        "value": {
+          "kind": "exact",
+          "value": 100
+        }
+      },
+      {
+        "id": "baseline.penalty_cash_paid",
+        "label": "基准 · 本期罚款支付额",
+        "unit": "currency",
+        "value": {
+          "kind": "exact",
+          "value": 0
+        }
+      },
+      {
+        "id": "baseline.capex",
+        "label": "基准 · 本期资本支出",
+        "unit": "currency",
+        "value": {
+          "kind": "exact",
+          "value": 0
+        }
+      },
+      {
+        "id": "baseline.debt_drawdown",
+        "label": "基准 · 本期实际借款提款",
+        "unit": "currency",
+        "value": {
+          "kind": "exact",
+          "value": 0
+        }
+      },
+      {
+        "id": "baseline.debt_repayment",
+        "label": "基准 · 本期债务本金偿还",
+        "unit": "currency",
+        "value": {
+          "kind": "exact",
+          "value": 0
+        }
+      },
+      {
+        "id": "baseline.dividends",
+        "label": "基准 · 本期现金分红",
+        "unit": "currency",
+        "value": {
+          "kind": "exact",
+          "value": 0
+        }
+      },
+      {
+        "id": "baseline.opening_ppe",
+        "label": "基准 · 期初PPE净额",
+        "unit": "currency",
+        "value": {
+          "kind": "exact",
+          "value": 500
+        }
+      },
+      {
+        "id": "baseline.opening_other_assets",
+        "label": "基准 · 期初其他资产",
+        "unit": "currency",
+        "value": {
+          "kind": "exact",
+          "value": 0
+        }
+      },
+      {
+        "id": "baseline.opening_debt",
+        "label": "基准 · 期初普通/批发债务",
+        "unit": "currency",
+        "value": {
+          "kind": "exact",
+          "value": 200
+        }
+      },
+      {
+        "id": "baseline.opening_other_liabilities",
+        "label": "基准 · 期初其他负债",
+        "unit": "currency",
+        "value": {
+          "kind": "exact",
+          "value": 0
+        }
+      },
+      {
+        "id": "baseline.opening_equity",
+        "label": "基准 · 期初权益",
+        "unit": "currency",
+        "value": {
+          "kind": "exact",
+          "value": 1400
+        }
+      },
+      {
+        "id": "baseline.restricted_cash",
+        "label": "基准 · 期末受限现金",
+        "unit": "currency",
+        "value": {
+          "kind": "exact",
+          "value": 0
+        }
+      },
+      {
+        "id": "baseline.available_credit",
+        "label": "基准 · 可用授信",
+        "unit": "currency",
+        "value": {
+          "kind": "exact",
+          "value": 0
+        }
+      },
+      {
+        "id": "constant.36",
+        "label": "模型常数 1",
+        "unit": "",
+        "value": {
+          "kind": "exact",
+          "value": 1
+        }
+      },
+      {
+        "id": "shock.shock-1",
+        "label": "单位材料成本变化率（0.1 = +10%）",
+        "unit": "比例",
+        "value": {
+          "kind": "exact",
+          "value": 0.1
+        },
+        "control": {
+          "kind": "slider",
+          "min": -1,
+          "max": 1,
+          "step": 0.001
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "formula.0",
+        "op": "min",
+        "args": [
+          "baseline.demand_volume",
+          "baseline.deliverable_volume"
+        ],
+        "label": "取较小值"
+      },
+      {
+        "id": "formula.1",
+        "op": "mul",
+        "args": [
+          "formula.0",
+          "baseline.selling_price"
+        ],
+        "label": "乘积"
+      },
+      {
+        "id": "baseline.income_statement.revenue",
+        "op": "add",
+        "args": [
+          "formula.1",
+          "constant.3"
+        ],
+        "label": "基准 · 收入",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.3",
+        "op": "add",
+        "args": [
+          "baseline.unit_material_cost",
+          "baseline.unit_other_cost"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.4",
+        "op": "mul",
+        "args": [
+          "formula.0",
+          "formula.3"
+        ],
+        "label": "乘积"
+      },
+      {
+        "id": "baseline.income_statement.cost_of_revenue",
+        "op": "add",
+        "args": [
+          "formula.4",
+          "constant.3"
+        ],
+        "label": "基准 · 营业成本",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.6",
+        "op": "sub",
+        "args": [
+          "formula.1",
+          "formula.4"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "baseline.income_statement.gross_profit",
+        "op": "add",
+        "args": [
+          "formula.6",
+          "constant.3"
+        ],
+        "label": "基准 · 毛利润",
+        "unit": "CNY"
+      },
+      {
+        "id": "baseline.income_statement.fixed_cash_cost",
+        "op": "add",
+        "args": [
+          "baseline.fixed_cash_cost",
+          "constant.3"
+        ],
+        "label": "基准 · 固定经营费用",
+        "unit": "CNY"
+      },
+      {
+        "id": "baseline.income_statement.d_and_a",
+        "op": "add",
+        "args": [
+          "baseline.d_and_a",
+          "constant.3"
+        ],
+        "label": "基准 · 折旧摊销",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.10",
+        "op": "sub",
+        "args": [
+          "formula.6",
+          "baseline.fixed_cash_cost"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.11",
+        "op": "sub",
+        "args": [
+          "formula.10",
+          "baseline.penalty_expense"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.12",
+        "op": "add",
+        "args": [
+          "baseline.inventory_writeoff",
+          "baseline.receivable_writeoff"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.13",
+        "op": "sub",
+        "args": [
+          "formula.11",
+          "formula.12"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "baseline.income_statement.ebitda",
+        "op": "add",
+        "args": [
+          "formula.13",
+          "constant.3"
+        ],
+        "label": "基准 · EBITDA",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.15",
+        "op": "sub",
+        "args": [
+          "formula.13",
+          "baseline.d_and_a"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "baseline.income_statement.ebit",
+        "op": "add",
+        "args": [
+          "formula.15",
+          "constant.3"
+        ],
+        "label": "基准 · 营业利润",
+        "unit": "CNY"
+      },
+      {
+        "id": "baseline.income_statement.interest_expense",
+        "op": "add",
+        "args": [
+          "baseline.interest_expense",
+          "constant.3"
+        ],
+        "label": "基准 · 利息费用",
+        "unit": "CNY"
+      },
+      {
+        "id": "baseline.income_statement.penalty_expense",
+        "op": "add",
+        "args": [
+          "baseline.penalty_expense",
+          "constant.3"
+        ],
+        "label": "基准 · 罚款费用",
+        "unit": "CNY"
+      },
+      {
+        "id": "baseline.income_statement.inventory_writeoff",
+        "op": "add",
+        "args": [
+          "baseline.inventory_writeoff",
+          "constant.3"
+        ],
+        "label": "基准 · 存货减值",
+        "unit": "CNY"
+      },
+      {
+        "id": "baseline.income_statement.receivable_writeoff",
+        "op": "add",
+        "args": [
+          "baseline.receivable_writeoff",
+          "constant.3"
+        ],
+        "label": "基准 · 应收减值",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.21",
+        "op": "sub",
+        "args": [
+          "formula.15",
+          "baseline.interest_expense"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "baseline.income_statement.profit_before_tax",
+        "op": "add",
+        "args": [
+          "formula.21",
+          "constant.3"
+        ],
+        "label": "基准 · 税前利润",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.23",
+        "op": "sub",
+        "args": [
+          "formula.10",
+          "baseline.d_and_a"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.24",
+        "op": "sub",
+        "args": [
+          "formula.23",
+          "baseline.interest_expense"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.25",
+        "op": "mul",
+        "args": [
+          "baseline.penalty_expense",
+          "baseline.penalty_tax_deductible_fraction"
+        ],
+        "label": "乘积"
+      },
+      {
+        "id": "formula.26",
+        "op": "sub",
+        "args": [
+          "formula.24",
+          "formula.25"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.27",
+        "op": "mul",
+        "args": [
+          "baseline.inventory_writeoff",
+          "baseline.inventory_writeoff_tax_deductible_fraction"
+        ],
+        "label": "乘积"
+      },
+      {
+        "id": "formula.28",
+        "op": "sub",
+        "args": [
+          "formula.26",
+          "formula.27"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.29",
+        "op": "mul",
+        "args": [
+          "baseline.receivable_writeoff",
+          "baseline.receivable_writeoff_tax_deductible_fraction"
+        ],
+        "label": "乘积"
+      },
+      {
+        "id": "formula.30",
+        "op": "sub",
+        "args": [
+          "formula.28",
+          "formula.29"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.31",
+        "op": "max",
+        "args": [
+          "formula.30",
+          "constant.3"
+        ],
+        "label": "取较大值"
+      },
+      {
+        "id": "formula.32",
+        "op": "mul",
+        "args": [
+          "formula.31",
+          "baseline.tax_rate"
+        ],
+        "label": "乘积"
+      },
+      {
+        "id": "baseline.income_statement.tax_expense",
+        "op": "add",
+        "args": [
+          "formula.32",
+          "constant.3"
+        ],
+        "label": "基准 · 所得税",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.34",
+        "op": "sub",
+        "args": [
+          "formula.21",
+          "formula.32"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "baseline.income_statement.net_income",
+        "op": "add",
+        "args": [
+          "formula.34",
+          "constant.3"
+        ],
+        "label": "基准 · 净利润",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.36",
+        "op": "add",
+        "args": [
+          "formula.34",
+          "baseline.d_and_a"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.37",
+        "op": "add",
+        "args": [
+          "formula.36",
+          "formula.12"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.38",
+        "op": "mul",
+        "args": [
+          "formula.1",
+          "baseline.dso"
+        ],
+        "label": "乘积"
+      },
+      {
+        "id": "formula.39",
+        "op": "div",
+        "args": [
+          "formula.38",
+          "constant.18"
+        ],
+        "label": "比率"
+      },
+      {
+        "id": "formula.40",
+        "op": "sub",
+        "args": [
+          "formula.39",
+          "baseline.opening_ar"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.41",
+        "op": "sub",
+        "args": [
+          "formula.37",
+          "formula.40"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.42",
+        "op": "mul",
+        "args": [
+          "formula.4",
+          "baseline.dio"
+        ],
+        "label": "乘积"
+      },
+      {
+        "id": "formula.43",
+        "op": "div",
+        "args": [
+          "formula.42",
+          "constant.18"
+        ],
+        "label": "比率"
+      },
+      {
+        "id": "formula.44",
+        "op": "sub",
+        "args": [
+          "formula.43",
+          "baseline.opening_inventory"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.45",
+        "op": "sub",
+        "args": [
+          "formula.41",
+          "formula.44"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.46",
+        "op": "mul",
+        "args": [
+          "formula.4",
+          "baseline.dpo"
+        ],
+        "label": "乘积"
+      },
+      {
+        "id": "formula.47",
+        "op": "div",
+        "args": [
+          "formula.46",
+          "constant.18"
+        ],
+        "label": "比率"
+      },
+      {
+        "id": "formula.48",
+        "op": "sub",
+        "args": [
+          "formula.47",
+          "baseline.opening_ap"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.49",
+        "op": "add",
+        "args": [
+          "formula.45",
+          "formula.48"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.50",
+        "op": "sub",
+        "args": [
+          "baseline.penalty_expense",
+          "baseline.penalty_cash_paid"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.51",
+        "op": "add",
+        "args": [
+          "formula.49",
+          "formula.50"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.52",
+        "op": "neg",
+        "args": [
+          "baseline.capex"
+        ],
+        "label": "取负值"
+      },
+      {
+        "id": "formula.53",
+        "op": "add",
+        "args": [
+          "formula.51",
+          "formula.52"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.54",
+        "op": "sub",
+        "args": [
+          "baseline.debt_drawdown",
+          "baseline.debt_repayment"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.55",
+        "op": "sub",
+        "args": [
+          "formula.54",
+          "baseline.dividends"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.56",
+        "op": "add",
+        "args": [
+          "formula.53",
+          "formula.55"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.57",
+        "op": "add",
+        "args": [
+          "baseline.opening_cash",
+          "formula.56"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "baseline.balance_sheet.cash",
+        "op": "add",
+        "args": [
+          "formula.57",
+          "constant.3"
+        ],
+        "label": "基准 · 现金",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.59",
+        "op": "sub",
+        "args": [
+          "formula.39",
+          "baseline.receivable_writeoff"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "baseline.balance_sheet.ar",
+        "op": "add",
+        "args": [
+          "formula.59",
+          "constant.3"
+        ],
+        "label": "基准 · 应收账款",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.61",
+        "op": "sub",
+        "args": [
+          "formula.43",
+          "baseline.inventory_writeoff"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "baseline.balance_sheet.inventory",
+        "op": "add",
+        "args": [
+          "formula.61",
+          "constant.3"
+        ],
+        "label": "基准 · 存货",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.63",
+        "op": "add",
+        "args": [
+          "baseline.opening_ppe",
+          "baseline.capex"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.64",
+        "op": "sub",
+        "args": [
+          "formula.63",
+          "baseline.d_and_a"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "baseline.balance_sheet.ppe",
+        "op": "add",
+        "args": [
+          "formula.64",
+          "constant.3"
+        ],
+        "label": "基准 · 固定资产净值",
+        "unit": "CNY"
+      },
+      {
+        "id": "baseline.balance_sheet.other_assets",
+        "op": "add",
+        "args": [
+          "baseline.opening_other_assets",
+          "constant.3"
+        ],
+        "label": "基准 · 其他资产",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.67",
+        "op": "add",
+        "args": [
+          "formula.57",
+          "formula.59"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.68",
+        "op": "add",
+        "args": [
+          "formula.67",
+          "formula.61"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.69",
+        "op": "add",
+        "args": [
+          "formula.68",
+          "formula.64"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.70",
+        "op": "add",
+        "args": [
+          "formula.69",
+          "baseline.opening_other_assets"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "baseline.balance_sheet.total_assets",
+        "op": "add",
+        "args": [
+          "formula.70",
+          "constant.3"
+        ],
+        "label": "基准 · 资产合计",
+        "unit": "CNY"
+      },
+      {
+        "id": "baseline.balance_sheet.ap",
+        "op": "add",
+        "args": [
+          "formula.47",
+          "constant.3"
+        ],
+        "label": "基准 · 应付账款",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.73",
+        "op": "add",
+        "args": [
+          "baseline.opening_debt",
+          "baseline.debt_drawdown"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.74",
+        "op": "sub",
+        "args": [
+          "formula.73",
+          "baseline.debt_repayment"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "baseline.balance_sheet.debt",
+        "op": "add",
+        "args": [
+          "formula.74",
+          "constant.3"
+        ],
+        "label": "基准 · 债务",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.76",
+        "op": "add",
+        "args": [
+          "baseline.opening_other_liabilities",
+          "formula.50"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "baseline.balance_sheet.other_liabilities",
+        "op": "add",
+        "args": [
+          "formula.76",
+          "constant.3"
+        ],
+        "label": "基准 · 其他负债",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.78",
+        "op": "add",
+        "args": [
+          "formula.47",
+          "formula.74"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.79",
+        "op": "add",
+        "args": [
+          "formula.78",
+          "formula.76"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "baseline.balance_sheet.total_liabilities",
+        "op": "add",
+        "args": [
+          "formula.79",
+          "constant.3"
+        ],
+        "label": "基准 · 负债合计",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.81",
+        "op": "add",
+        "args": [
+          "baseline.opening_equity",
+          "formula.34"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.82",
+        "op": "sub",
+        "args": [
+          "formula.81",
+          "baseline.dividends"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "baseline.balance_sheet.equity",
+        "op": "add",
+        "args": [
+          "formula.82",
+          "constant.3"
+        ],
+        "label": "基准 · 权益",
+        "unit": "CNY"
+      },
+      {
+        "id": "baseline.cash_flow_statement.operating_cash_flow",
+        "op": "add",
+        "args": [
+          "formula.51",
+          "constant.3"
+        ],
+        "label": "基准 · 经营现金流",
+        "unit": "CNY"
+      },
+      {
+        "id": "baseline.cash_flow_statement.investing_cash_flow",
+        "op": "add",
+        "args": [
+          "formula.52",
+          "constant.3"
+        ],
+        "label": "基准 · 投资现金流",
+        "unit": "CNY"
+      },
+      {
+        "id": "baseline.cash_flow_statement.financing_cash_flow",
+        "op": "add",
+        "args": [
+          "formula.55",
+          "constant.3"
+        ],
+        "label": "基准 · 筹资现金流",
+        "unit": "CNY"
+      },
+      {
+        "id": "baseline.cash_flow_statement.net_cash_change",
+        "op": "add",
+        "args": [
+          "formula.56",
+          "constant.3"
+        ],
+        "label": "基准 · 现金净变化",
+        "unit": "CNY"
+      },
+      {
+        "id": "baseline.cash_flow_statement.opening_cash",
+        "op": "add",
+        "args": [
+          "baseline.opening_cash",
+          "constant.3"
+        ],
+        "label": "基准 · 期初现金",
+        "unit": "CNY"
+      },
+      {
+        "id": "baseline.cash_flow_statement.closing_cash",
+        "op": "add",
+        "args": [
+          "formula.57",
+          "constant.3"
+        ],
+        "label": "基准 · 期末现金",
+        "unit": "CNY"
+      },
+      {
+        "id": "baseline.cash_flow_statement.cash_tax_paid",
+        "op": "add",
+        "args": [
+          "formula.32",
+          "constant.3"
+        ],
+        "label": "基准 · 现金所得税",
+        "unit": "CNY"
+      },
+      {
+        "id": "baseline.operating.sales_volume",
+        "op": "add",
+        "args": [
+          "formula.0",
+          "constant.3"
+        ],
+        "label": "基准 · 销量",
+        "unit": "units"
+      },
+      {
+        "id": "baseline.operating.ar_before_writeoff",
+        "op": "add",
+        "args": [
+          "formula.39",
+          "constant.3"
+        ],
+        "label": "基准 · 减值前应收",
+        "unit": "CNY"
+      },
+      {
+        "id": "baseline.operating.inventory_before_writeoff",
+        "op": "add",
+        "args": [
+          "formula.43",
+          "constant.3"
+        ],
+        "label": "基准 · 减值前存货",
+        "unit": "CNY"
+      },
+      {
+        "id": "baseline.operating.taxable_profit_before_floor",
+        "op": "add",
+        "args": [
+          "formula.30",
+          "constant.3"
+        ],
+        "label": "基准 · 零下限前应税利润",
+        "unit": "CNY"
+      },
+      {
+        "id": "baseline.operating.taxable_profit",
+        "op": "add",
+        "args": [
+          "formula.31",
+          "constant.3"
+        ],
+        "label": "基准 · 应税利润",
+        "unit": "CNY"
+      },
+      {
+        "id": "baseline.operating.penalty_payable_change",
+        "op": "add",
+        "args": [
+          "formula.50",
+          "constant.3"
+        ],
+        "label": "基准 · 罚款应付变化",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.97",
+        "op": "sub",
+        "args": [
+          "formula.57",
+          "baseline.restricted_cash"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "baseline.operating.unrestricted_cash",
+        "op": "add",
+        "args": [
+          "formula.97",
+          "constant.3"
+        ],
+        "label": "基准 · 非受限现金",
+        "unit": "CNY"
+      },
+      {
+        "id": "baseline.operating.available_credit",
+        "op": "add",
+        "args": [
+          "baseline.available_credit",
+          "constant.3"
+        ],
+        "label": "基准 · 可用授信",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.100",
+        "op": "add",
+        "args": [
+          "formula.97",
+          "baseline.available_credit"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "baseline.operating.available_liquidity",
+        "op": "add",
+        "args": [
+          "formula.100",
+          "constant.3"
+        ],
+        "label": "基准 · 可用流动性",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.102",
+        "op": "neg",
+        "args": [
+          "formula.57"
+        ],
+        "label": "取负值"
+      },
+      {
+        "id": "formula.103",
+        "op": "max",
+        "args": [
+          "formula.102",
+          "constant.3"
+        ],
+        "label": "取较大值"
+      },
+      {
+        "id": "baseline.operating.funding_gap",
+        "op": "add",
+        "args": [
+          "formula.103",
+          "constant.3"
+        ],
+        "label": "基准 · 资金缺口",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.105",
+        "op": "neg",
+        "args": [
+          "formula.100"
+        ],
+        "label": "取负值"
+      },
+      {
+        "id": "formula.106",
+        "op": "max",
+        "args": [
+          "formula.105",
+          "constant.3"
+        ],
+        "label": "取较大值"
+      },
+      {
+        "id": "baseline.operating.liquidity_gap",
+        "op": "add",
+        "args": [
+          "formula.106",
+          "constant.3"
+        ],
+        "label": "基准 · 流动性缺口",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.income_statement.revenue",
+        "op": "add",
+        "args": [
+          "formula.1",
+          "constant.3"
+        ],
+        "label": "情景 · 收入",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.109",
+        "op": "add",
+        "args": [
+          "constant.36",
+          "shock.shock-1"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.110",
+        "op": "mul",
+        "args": [
+          "baseline.unit_material_cost",
+          "formula.109"
+        ],
+        "label": "乘积"
+      },
+      {
+        "id": "formula.111",
+        "op": "add",
+        "args": [
+          "formula.110",
+          "baseline.unit_other_cost"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.112",
+        "op": "mul",
+        "args": [
+          "formula.0",
+          "formula.111"
+        ],
+        "label": "乘积"
+      },
+      {
+        "id": "scenario.income_statement.cost_of_revenue",
+        "op": "add",
+        "args": [
+          "formula.112",
+          "constant.3"
+        ],
+        "label": "情景 · 营业成本",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.114",
+        "op": "sub",
+        "args": [
+          "formula.1",
+          "formula.112"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "scenario.income_statement.gross_profit",
+        "op": "add",
+        "args": [
+          "formula.114",
+          "constant.3"
+        ],
+        "label": "情景 · 毛利润",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.income_statement.fixed_cash_cost",
+        "op": "add",
+        "args": [
+          "baseline.fixed_cash_cost",
+          "constant.3"
+        ],
+        "label": "情景 · 固定经营费用",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.income_statement.d_and_a",
+        "op": "add",
+        "args": [
+          "baseline.d_and_a",
+          "constant.3"
+        ],
+        "label": "情景 · 折旧摊销",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.118",
+        "op": "sub",
+        "args": [
+          "formula.114",
+          "baseline.fixed_cash_cost"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.119",
+        "op": "sub",
+        "args": [
+          "formula.118",
+          "baseline.penalty_expense"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.120",
+        "op": "sub",
+        "args": [
+          "formula.119",
+          "formula.12"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "scenario.income_statement.ebitda",
+        "op": "add",
+        "args": [
+          "formula.120",
+          "constant.3"
+        ],
+        "label": "情景 · EBITDA",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.122",
+        "op": "sub",
+        "args": [
+          "formula.120",
+          "baseline.d_and_a"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "scenario.income_statement.ebit",
+        "op": "add",
+        "args": [
+          "formula.122",
+          "constant.3"
+        ],
+        "label": "情景 · 营业利润",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.income_statement.interest_expense",
+        "op": "add",
+        "args": [
+          "baseline.interest_expense",
+          "constant.3"
+        ],
+        "label": "情景 · 利息费用",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.income_statement.penalty_expense",
+        "op": "add",
+        "args": [
+          "baseline.penalty_expense",
+          "constant.3"
+        ],
+        "label": "情景 · 罚款费用",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.income_statement.inventory_writeoff",
+        "op": "add",
+        "args": [
+          "baseline.inventory_writeoff",
+          "constant.3"
+        ],
+        "label": "情景 · 存货减值",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.income_statement.receivable_writeoff",
+        "op": "add",
+        "args": [
+          "baseline.receivable_writeoff",
+          "constant.3"
+        ],
+        "label": "情景 · 应收减值",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.128",
+        "op": "sub",
+        "args": [
+          "formula.122",
+          "baseline.interest_expense"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "scenario.income_statement.profit_before_tax",
+        "op": "add",
+        "args": [
+          "formula.128",
+          "constant.3"
+        ],
+        "label": "情景 · 税前利润",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.130",
+        "op": "sub",
+        "args": [
+          "formula.118",
+          "baseline.d_and_a"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.131",
+        "op": "sub",
+        "args": [
+          "formula.130",
+          "baseline.interest_expense"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.132",
+        "op": "sub",
+        "args": [
+          "formula.131",
+          "formula.25"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.133",
+        "op": "sub",
+        "args": [
+          "formula.132",
+          "formula.27"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.134",
+        "op": "sub",
+        "args": [
+          "formula.133",
+          "formula.29"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.135",
+        "op": "max",
+        "args": [
+          "formula.134",
+          "constant.3"
+        ],
+        "label": "取较大值"
+      },
+      {
+        "id": "formula.136",
+        "op": "mul",
+        "args": [
+          "formula.135",
+          "baseline.tax_rate"
+        ],
+        "label": "乘积"
+      },
+      {
+        "id": "scenario.income_statement.tax_expense",
+        "op": "add",
+        "args": [
+          "formula.136",
+          "constant.3"
+        ],
+        "label": "情景 · 所得税",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.138",
+        "op": "sub",
+        "args": [
+          "formula.128",
+          "formula.136"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "scenario.income_statement.net_income",
+        "op": "add",
+        "args": [
+          "formula.138",
+          "constant.3"
+        ],
+        "label": "情景 · 净利润",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.140",
+        "op": "add",
+        "args": [
+          "formula.138",
+          "baseline.d_and_a"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.141",
+        "op": "add",
+        "args": [
+          "formula.140",
+          "formula.12"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.142",
+        "op": "sub",
+        "args": [
+          "formula.141",
+          "formula.40"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.143",
+        "op": "mul",
+        "args": [
+          "formula.112",
+          "baseline.dio"
+        ],
+        "label": "乘积"
+      },
+      {
+        "id": "formula.144",
+        "op": "div",
+        "args": [
+          "formula.143",
+          "constant.18"
+        ],
+        "label": "比率"
+      },
+      {
+        "id": "formula.145",
+        "op": "sub",
+        "args": [
+          "formula.144",
+          "baseline.opening_inventory"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.146",
+        "op": "sub",
+        "args": [
+          "formula.142",
+          "formula.145"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.147",
+        "op": "mul",
+        "args": [
+          "formula.112",
+          "baseline.dpo"
+        ],
+        "label": "乘积"
+      },
+      {
+        "id": "formula.148",
+        "op": "div",
+        "args": [
+          "formula.147",
+          "constant.18"
+        ],
+        "label": "比率"
+      },
+      {
+        "id": "formula.149",
+        "op": "sub",
+        "args": [
+          "formula.148",
+          "baseline.opening_ap"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "formula.150",
+        "op": "add",
+        "args": [
+          "formula.146",
+          "formula.149"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.151",
+        "op": "add",
+        "args": [
+          "formula.150",
+          "formula.50"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.152",
+        "op": "add",
+        "args": [
+          "formula.151",
+          "formula.52"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.153",
+        "op": "add",
+        "args": [
+          "formula.152",
+          "formula.55"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.154",
+        "op": "add",
+        "args": [
+          "baseline.opening_cash",
+          "formula.153"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "scenario.balance_sheet.cash",
+        "op": "add",
+        "args": [
+          "formula.154",
+          "constant.3"
+        ],
+        "label": "情景 · 现金",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.balance_sheet.ar",
+        "op": "add",
+        "args": [
+          "formula.59",
+          "constant.3"
+        ],
+        "label": "情景 · 应收账款",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.157",
+        "op": "sub",
+        "args": [
+          "formula.144",
+          "baseline.inventory_writeoff"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "scenario.balance_sheet.inventory",
+        "op": "add",
+        "args": [
+          "formula.157",
+          "constant.3"
+        ],
+        "label": "情景 · 存货",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.balance_sheet.ppe",
+        "op": "add",
+        "args": [
+          "formula.64",
+          "constant.3"
+        ],
+        "label": "情景 · 固定资产净值",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.balance_sheet.other_assets",
+        "op": "add",
+        "args": [
+          "baseline.opening_other_assets",
+          "constant.3"
+        ],
+        "label": "情景 · 其他资产",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.161",
+        "op": "add",
+        "args": [
+          "formula.154",
+          "formula.59"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.162",
+        "op": "add",
+        "args": [
+          "formula.161",
+          "formula.157"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.163",
+        "op": "add",
+        "args": [
+          "formula.162",
+          "formula.64"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.164",
+        "op": "add",
+        "args": [
+          "formula.163",
+          "baseline.opening_other_assets"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "scenario.balance_sheet.total_assets",
+        "op": "add",
+        "args": [
+          "formula.164",
+          "constant.3"
+        ],
+        "label": "情景 · 资产合计",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.balance_sheet.ap",
+        "op": "add",
+        "args": [
+          "formula.148",
+          "constant.3"
+        ],
+        "label": "情景 · 应付账款",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.balance_sheet.debt",
+        "op": "add",
+        "args": [
+          "formula.74",
+          "constant.3"
+        ],
+        "label": "情景 · 债务",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.balance_sheet.other_liabilities",
+        "op": "add",
+        "args": [
+          "formula.76",
+          "constant.3"
+        ],
+        "label": "情景 · 其他负债",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.169",
+        "op": "add",
+        "args": [
+          "formula.148",
+          "formula.74"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.170",
+        "op": "add",
+        "args": [
+          "formula.169",
+          "formula.76"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "scenario.balance_sheet.total_liabilities",
+        "op": "add",
+        "args": [
+          "formula.170",
+          "constant.3"
+        ],
+        "label": "情景 · 负债合计",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.172",
+        "op": "add",
+        "args": [
+          "baseline.opening_equity",
+          "formula.138"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "formula.173",
+        "op": "sub",
+        "args": [
+          "formula.172",
+          "baseline.dividends"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "scenario.balance_sheet.equity",
+        "op": "add",
+        "args": [
+          "formula.173",
+          "constant.3"
+        ],
+        "label": "情景 · 权益",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.cash_flow_statement.operating_cash_flow",
+        "op": "add",
+        "args": [
+          "formula.151",
+          "constant.3"
+        ],
+        "label": "情景 · 经营现金流",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.cash_flow_statement.investing_cash_flow",
+        "op": "add",
+        "args": [
+          "formula.52",
+          "constant.3"
+        ],
+        "label": "情景 · 投资现金流",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.cash_flow_statement.financing_cash_flow",
+        "op": "add",
+        "args": [
+          "formula.55",
+          "constant.3"
+        ],
+        "label": "情景 · 筹资现金流",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.cash_flow_statement.net_cash_change",
+        "op": "add",
+        "args": [
+          "formula.153",
+          "constant.3"
+        ],
+        "label": "情景 · 现金净变化",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.cash_flow_statement.opening_cash",
+        "op": "add",
+        "args": [
+          "baseline.opening_cash",
+          "constant.3"
+        ],
+        "label": "情景 · 期初现金",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.cash_flow_statement.closing_cash",
+        "op": "add",
+        "args": [
+          "formula.154",
+          "constant.3"
+        ],
+        "label": "情景 · 期末现金",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.cash_flow_statement.cash_tax_paid",
+        "op": "add",
+        "args": [
+          "formula.136",
+          "constant.3"
+        ],
+        "label": "情景 · 现金所得税",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.operating.sales_volume",
+        "op": "add",
+        "args": [
+          "formula.0",
+          "constant.3"
+        ],
+        "label": "情景 · 销量",
+        "unit": "units"
+      },
+      {
+        "id": "scenario.operating.ar_before_writeoff",
+        "op": "add",
+        "args": [
+          "formula.39",
+          "constant.3"
+        ],
+        "label": "情景 · 减值前应收",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.operating.inventory_before_writeoff",
+        "op": "add",
+        "args": [
+          "formula.144",
+          "constant.3"
+        ],
+        "label": "情景 · 减值前存货",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.operating.taxable_profit_before_floor",
+        "op": "add",
+        "args": [
+          "formula.134",
+          "constant.3"
+        ],
+        "label": "情景 · 零下限前应税利润",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.operating.taxable_profit",
+        "op": "add",
+        "args": [
+          "formula.135",
+          "constant.3"
+        ],
+        "label": "情景 · 应税利润",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.operating.penalty_payable_change",
+        "op": "add",
+        "args": [
+          "formula.50",
+          "constant.3"
+        ],
+        "label": "情景 · 罚款应付变化",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.188",
+        "op": "sub",
+        "args": [
+          "formula.154",
+          "baseline.restricted_cash"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "scenario.operating.unrestricted_cash",
+        "op": "add",
+        "args": [
+          "formula.188",
+          "constant.3"
+        ],
+        "label": "情景 · 非受限现金",
+        "unit": "CNY"
+      },
+      {
+        "id": "scenario.operating.available_credit",
+        "op": "add",
+        "args": [
+          "baseline.available_credit",
+          "constant.3"
+        ],
+        "label": "情景 · 可用授信",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.191",
+        "op": "add",
+        "args": [
+          "formula.188",
+          "baseline.available_credit"
+        ],
+        "label": "加总"
+      },
+      {
+        "id": "scenario.operating.available_liquidity",
+        "op": "add",
+        "args": [
+          "formula.191",
+          "constant.3"
+        ],
+        "label": "情景 · 可用流动性",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.193",
+        "op": "neg",
+        "args": [
+          "formula.154"
+        ],
+        "label": "取负值"
+      },
+      {
+        "id": "formula.194",
+        "op": "max",
+        "args": [
+          "formula.193",
+          "constant.3"
+        ],
+        "label": "取较大值"
+      },
+      {
+        "id": "scenario.operating.funding_gap",
+        "op": "add",
+        "args": [
+          "formula.194",
+          "constant.3"
+        ],
+        "label": "情景 · 资金缺口",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.196",
+        "op": "neg",
+        "args": [
+          "formula.191"
+        ],
+        "label": "取负值"
+      },
+      {
+        "id": "formula.197",
+        "op": "max",
+        "args": [
+          "formula.196",
+          "constant.3"
+        ],
+        "label": "取较大值"
+      },
+      {
+        "id": "scenario.operating.liquidity_gap",
+        "op": "add",
+        "args": [
+          "formula.197",
+          "constant.3"
+        ],
+        "label": "情景 · 流动性缺口",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.199",
+        "op": "sub",
+        "args": [
+          "formula.1",
+          "formula.1"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.income_statement.revenue",
+        "op": "add",
+        "args": [
+          "formula.199",
+          "constant.3"
+        ],
+        "label": "变化 · 收入",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.201",
+        "op": "sub",
+        "args": [
+          "formula.112",
+          "formula.4"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.income_statement.cost_of_revenue",
+        "op": "add",
+        "args": [
+          "formula.201",
+          "constant.3"
+        ],
+        "label": "变化 · 营业成本",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.203",
+        "op": "sub",
+        "args": [
+          "formula.114",
+          "formula.6"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.income_statement.gross_profit",
+        "op": "add",
+        "args": [
+          "formula.203",
+          "constant.3"
+        ],
+        "label": "变化 · 毛利润",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.205",
+        "op": "sub",
+        "args": [
+          "baseline.fixed_cash_cost",
+          "baseline.fixed_cash_cost"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.income_statement.fixed_cash_cost",
+        "op": "add",
+        "args": [
+          "formula.205",
+          "constant.3"
+        ],
+        "label": "变化 · 固定经营费用",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.207",
+        "op": "sub",
+        "args": [
+          "baseline.d_and_a",
+          "baseline.d_and_a"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.income_statement.d_and_a",
+        "op": "add",
+        "args": [
+          "formula.207",
+          "constant.3"
+        ],
+        "label": "变化 · 折旧摊销",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.209",
+        "op": "sub",
+        "args": [
+          "formula.120",
+          "formula.13"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.income_statement.ebitda",
+        "op": "add",
+        "args": [
+          "formula.209",
+          "constant.3"
+        ],
+        "label": "变化 · EBITDA",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.211",
+        "op": "sub",
+        "args": [
+          "formula.122",
+          "formula.15"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.income_statement.ebit",
+        "op": "add",
+        "args": [
+          "formula.211",
+          "constant.3"
+        ],
+        "label": "变化 · 营业利润",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.213",
+        "op": "sub",
+        "args": [
+          "baseline.interest_expense",
+          "baseline.interest_expense"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.income_statement.interest_expense",
+        "op": "add",
+        "args": [
+          "formula.213",
+          "constant.3"
+        ],
+        "label": "变化 · 利息费用",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.215",
+        "op": "sub",
+        "args": [
+          "baseline.penalty_expense",
+          "baseline.penalty_expense"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.income_statement.penalty_expense",
+        "op": "add",
+        "args": [
+          "formula.215",
+          "constant.3"
+        ],
+        "label": "变化 · 罚款费用",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.217",
+        "op": "sub",
+        "args": [
+          "baseline.inventory_writeoff",
+          "baseline.inventory_writeoff"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.income_statement.inventory_writeoff",
+        "op": "add",
+        "args": [
+          "formula.217",
+          "constant.3"
+        ],
+        "label": "变化 · 存货减值",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.219",
+        "op": "sub",
+        "args": [
+          "baseline.receivable_writeoff",
+          "baseline.receivable_writeoff"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.income_statement.receivable_writeoff",
+        "op": "add",
+        "args": [
+          "formula.219",
+          "constant.3"
+        ],
+        "label": "变化 · 应收减值",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.221",
+        "op": "sub",
+        "args": [
+          "formula.128",
+          "formula.21"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.income_statement.profit_before_tax",
+        "op": "add",
+        "args": [
+          "formula.221",
+          "constant.3"
+        ],
+        "label": "变化 · 税前利润",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.223",
+        "op": "sub",
+        "args": [
+          "formula.136",
+          "formula.32"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.income_statement.tax_expense",
+        "op": "add",
+        "args": [
+          "formula.223",
+          "constant.3"
+        ],
+        "label": "变化 · 所得税",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.225",
+        "op": "sub",
+        "args": [
+          "formula.138",
+          "formula.34"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.income_statement.net_income",
+        "op": "add",
+        "args": [
+          "formula.225",
+          "constant.3"
+        ],
+        "label": "变化 · 净利润",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.227",
+        "op": "sub",
+        "args": [
+          "formula.154",
+          "formula.57"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.balance_sheet.cash",
+        "op": "add",
+        "args": [
+          "formula.227",
+          "constant.3"
+        ],
+        "label": "变化 · 现金",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.229",
+        "op": "sub",
+        "args": [
+          "formula.59",
+          "formula.59"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.balance_sheet.ar",
+        "op": "add",
+        "args": [
+          "formula.229",
+          "constant.3"
+        ],
+        "label": "变化 · 应收账款",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.231",
+        "op": "sub",
+        "args": [
+          "formula.157",
+          "formula.61"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.balance_sheet.inventory",
+        "op": "add",
+        "args": [
+          "formula.231",
+          "constant.3"
+        ],
+        "label": "变化 · 存货",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.233",
+        "op": "sub",
+        "args": [
+          "formula.64",
+          "formula.64"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.balance_sheet.ppe",
+        "op": "add",
+        "args": [
+          "formula.233",
+          "constant.3"
+        ],
+        "label": "变化 · 固定资产净值",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.235",
+        "op": "sub",
+        "args": [
+          "baseline.opening_other_assets",
+          "baseline.opening_other_assets"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.balance_sheet.other_assets",
+        "op": "add",
+        "args": [
+          "formula.235",
+          "constant.3"
+        ],
+        "label": "变化 · 其他资产",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.237",
+        "op": "sub",
+        "args": [
+          "formula.164",
+          "formula.70"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.balance_sheet.total_assets",
+        "op": "add",
+        "args": [
+          "formula.237",
+          "constant.3"
+        ],
+        "label": "变化 · 资产合计",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.239",
+        "op": "sub",
+        "args": [
+          "formula.148",
+          "formula.47"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.balance_sheet.ap",
+        "op": "add",
+        "args": [
+          "formula.239",
+          "constant.3"
+        ],
+        "label": "变化 · 应付账款",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.241",
+        "op": "sub",
+        "args": [
+          "formula.74",
+          "formula.74"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.balance_sheet.debt",
+        "op": "add",
+        "args": [
+          "formula.241",
+          "constant.3"
+        ],
+        "label": "变化 · 债务",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.243",
+        "op": "sub",
+        "args": [
+          "formula.76",
+          "formula.76"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.balance_sheet.other_liabilities",
+        "op": "add",
+        "args": [
+          "formula.243",
+          "constant.3"
+        ],
+        "label": "变化 · 其他负债",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.245",
+        "op": "sub",
+        "args": [
+          "formula.170",
+          "formula.79"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.balance_sheet.total_liabilities",
+        "op": "add",
+        "args": [
+          "formula.245",
+          "constant.3"
+        ],
+        "label": "变化 · 负债合计",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.247",
+        "op": "sub",
+        "args": [
+          "formula.173",
+          "formula.82"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.balance_sheet.equity",
+        "op": "add",
+        "args": [
+          "formula.247",
+          "constant.3"
+        ],
+        "label": "变化 · 权益",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.249",
+        "op": "sub",
+        "args": [
+          "formula.151",
+          "formula.51"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.cash_flow_statement.operating_cash_flow",
+        "op": "add",
+        "args": [
+          "formula.249",
+          "constant.3"
+        ],
+        "label": "变化 · 经营现金流",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.251",
+        "op": "sub",
+        "args": [
+          "formula.52",
+          "formula.52"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.cash_flow_statement.investing_cash_flow",
+        "op": "add",
+        "args": [
+          "formula.251",
+          "constant.3"
+        ],
+        "label": "变化 · 投资现金流",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.253",
+        "op": "sub",
+        "args": [
+          "formula.55",
+          "formula.55"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.cash_flow_statement.financing_cash_flow",
+        "op": "add",
+        "args": [
+          "formula.253",
+          "constant.3"
+        ],
+        "label": "变化 · 筹资现金流",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.255",
+        "op": "sub",
+        "args": [
+          "formula.153",
+          "formula.56"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.cash_flow_statement.net_cash_change",
+        "op": "add",
+        "args": [
+          "formula.255",
+          "constant.3"
+        ],
+        "label": "变化 · 现金净变化",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.257",
+        "op": "sub",
+        "args": [
+          "baseline.opening_cash",
+          "baseline.opening_cash"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.cash_flow_statement.opening_cash",
+        "op": "add",
+        "args": [
+          "formula.257",
+          "constant.3"
+        ],
+        "label": "变化 · 期初现金",
+        "unit": "CNY"
+      },
+      {
+        "id": "delta.cash_flow_statement.closing_cash",
+        "op": "add",
+        "args": [
+          "formula.227",
+          "constant.3"
+        ],
+        "label": "变化 · 期末现金",
+        "unit": "CNY"
+      },
+      {
+        "id": "delta.cash_flow_statement.cash_tax_paid",
+        "op": "add",
+        "args": [
+          "formula.223",
+          "constant.3"
+        ],
+        "label": "变化 · 现金所得税",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.261",
+        "op": "sub",
+        "args": [
+          "formula.0",
+          "formula.0"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.operating.sales_volume",
+        "op": "add",
+        "args": [
+          "formula.261",
+          "constant.3"
+        ],
+        "label": "变化 · 销量",
+        "unit": "units"
+      },
+      {
+        "id": "formula.263",
+        "op": "sub",
+        "args": [
+          "formula.39",
+          "formula.39"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.operating.ar_before_writeoff",
+        "op": "add",
+        "args": [
+          "formula.263",
+          "constant.3"
+        ],
+        "label": "变化 · 减值前应收",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.265",
+        "op": "sub",
+        "args": [
+          "formula.144",
+          "formula.43"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.operating.inventory_before_writeoff",
+        "op": "add",
+        "args": [
+          "formula.265",
+          "constant.3"
+        ],
+        "label": "变化 · 减值前存货",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.267",
+        "op": "sub",
+        "args": [
+          "formula.134",
+          "formula.30"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.operating.taxable_profit_before_floor",
+        "op": "add",
+        "args": [
+          "formula.267",
+          "constant.3"
+        ],
+        "label": "变化 · 零下限前应税利润",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.269",
+        "op": "sub",
+        "args": [
+          "formula.135",
+          "formula.31"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.operating.taxable_profit",
+        "op": "add",
+        "args": [
+          "formula.269",
+          "constant.3"
+        ],
+        "label": "变化 · 应税利润",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.271",
+        "op": "sub",
+        "args": [
+          "formula.50",
+          "formula.50"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.operating.penalty_payable_change",
+        "op": "add",
+        "args": [
+          "formula.271",
+          "constant.3"
+        ],
+        "label": "变化 · 罚款应付变化",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.273",
+        "op": "sub",
+        "args": [
+          "formula.188",
+          "formula.97"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.operating.unrestricted_cash",
+        "op": "add",
+        "args": [
+          "formula.273",
+          "constant.3"
+        ],
+        "label": "变化 · 非受限现金",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.275",
+        "op": "sub",
+        "args": [
+          "baseline.available_credit",
+          "baseline.available_credit"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.operating.available_credit",
+        "op": "add",
+        "args": [
+          "formula.275",
+          "constant.3"
+        ],
+        "label": "变化 · 可用授信",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.277",
+        "op": "sub",
+        "args": [
+          "formula.191",
+          "formula.100"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.operating.available_liquidity",
+        "op": "add",
+        "args": [
+          "formula.277",
+          "constant.3"
+        ],
+        "label": "变化 · 可用流动性",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.279",
+        "op": "sub",
+        "args": [
+          "formula.194",
+          "formula.103"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.operating.funding_gap",
+        "op": "add",
+        "args": [
+          "formula.279",
+          "constant.3"
+        ],
+        "label": "变化 · 资金缺口",
+        "unit": "CNY"
+      },
+      {
+        "id": "formula.281",
+        "op": "sub",
+        "args": [
+          "formula.197",
+          "formula.106"
+        ],
+        "label": "差值"
+      },
+      {
+        "id": "delta.operating.liquidity_gap",
+        "op": "add",
+        "args": [
+          "formula.281",
+          "constant.3"
+        ],
+        "label": "变化 · 流动性缺口",
+        "unit": "CNY"
+      },
+      {
+        "id": "baseline.check.liabilities_equity",
+        "op": "add",
+        "args": [
+          "baseline.balance_sheet.total_liabilities",
+          "baseline.balance_sheet.equity"
+        ],
+        "label": "baseline.check.liabilities_equity"
+      },
+      {
+        "id": "baseline.check.opening_assets",
+        "op": "add",
+        "args": [
+          "baseline.opening_cash",
+          "baseline.opening_ar",
+          "baseline.opening_inventory",
+          "baseline.opening_ppe",
+          "baseline.opening_other_assets"
+        ],
+        "label": "baseline.check.opening_assets"
+      },
+      {
+        "id": "baseline.check.opening_le",
+        "op": "add",
+        "args": [
+          "baseline.opening_ap",
+          "baseline.opening_debt",
+          "baseline.opening_other_liabilities",
+          "baseline.opening_equity"
+        ],
+        "label": "baseline.check.opening_le"
+      },
+      {
+        "id": "baseline.check.opening_balance",
+        "op": "sub",
+        "args": [
+          "baseline.check.opening_assets",
+          "baseline.check.opening_le"
+        ],
+        "label": "baseline.check.opening_balance"
+      },
+      {
+        "id": "baseline.check.closing_balance",
+        "op": "sub",
+        "args": [
+          "baseline.balance_sheet.total_assets",
+          "baseline.check.liabilities_equity"
+        ],
+        "label": "baseline.check.closing_balance"
+      },
+      {
+        "id": "baseline.check.cash_expected",
+        "op": "add",
+        "args": [
+          "baseline.cash_flow_statement.opening_cash",
+          "baseline.cash_flow_statement.net_cash_change"
+        ],
+        "label": "baseline.check.cash_expected"
+      },
+      {
+        "id": "baseline.check.cash_rollforward",
+        "op": "sub",
+        "args": [
+          "baseline.cash_flow_statement.closing_cash",
+          "baseline.check.cash_expected"
+        ],
+        "label": "baseline.check.cash_rollforward"
+      },
+      {
+        "id": "scenario.check.liabilities_equity",
+        "op": "add",
+        "args": [
+          "scenario.balance_sheet.total_liabilities",
+          "scenario.balance_sheet.equity"
+        ],
+        "label": "scenario.check.liabilities_equity"
+      },
+      {
+        "id": "scenario.check.opening_assets",
+        "op": "add",
+        "args": [
+          "baseline.opening_cash",
+          "baseline.opening_ar",
+          "baseline.opening_inventory",
+          "baseline.opening_ppe",
+          "baseline.opening_other_assets"
+        ],
+        "label": "scenario.check.opening_assets"
+      },
+      {
+        "id": "scenario.check.opening_le",
+        "op": "add",
+        "args": [
+          "baseline.opening_ap",
+          "baseline.opening_debt",
+          "baseline.opening_other_liabilities",
+          "baseline.opening_equity"
+        ],
+        "label": "scenario.check.opening_le"
+      },
+      {
+        "id": "scenario.check.opening_balance",
+        "op": "sub",
+        "args": [
+          "scenario.check.opening_assets",
+          "scenario.check.opening_le"
+        ],
+        "label": "scenario.check.opening_balance"
+      },
+      {
+        "id": "scenario.check.closing_balance",
+        "op": "sub",
+        "args": [
+          "scenario.balance_sheet.total_assets",
+          "scenario.check.liabilities_equity"
+        ],
+        "label": "scenario.check.closing_balance"
+      },
+      {
+        "id": "scenario.check.cash_expected",
+        "op": "add",
+        "args": [
+          "scenario.cash_flow_statement.opening_cash",
+          "scenario.cash_flow_statement.net_cash_change"
+        ],
+        "label": "scenario.check.cash_expected"
+      },
+      {
+        "id": "scenario.check.cash_rollforward",
+        "op": "sub",
+        "args": [
+          "scenario.cash_flow_statement.closing_cash",
+          "scenario.check.cash_expected"
+        ],
+        "label": "scenario.check.cash_rollforward"
+      }
+    ]
+  },
+  "views": {
+    "tables": [
+      {
+        "id": "income_statement",
+        "title": "利润表",
+        "columns": [
+          {
+            "key": "baseline",
+            "label": "基准"
+          },
+          {
+            "key": "scenario",
+            "label": "情景"
+          },
+          {
+            "key": "delta",
+            "label": "变化"
+          }
+        ],
+        "rows": [
+          {
+            "label": "收入",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.income_statement.revenue"
+              },
+              "scenario": {
+                "ref": "scenario.income_statement.revenue"
+              },
+              "delta": {
+                "ref": "delta.income_statement.revenue"
+              }
+            }
+          },
+          {
+            "label": "营业成本",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.income_statement.cost_of_revenue"
+              },
+              "scenario": {
+                "ref": "scenario.income_statement.cost_of_revenue"
+              },
+              "delta": {
+                "ref": "delta.income_statement.cost_of_revenue"
+              }
+            }
+          },
+          {
+            "label": "毛利润",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.income_statement.gross_profit"
+              },
+              "scenario": {
+                "ref": "scenario.income_statement.gross_profit"
+              },
+              "delta": {
+                "ref": "delta.income_statement.gross_profit"
+              }
+            }
+          },
+          {
+            "label": "固定经营费用",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.income_statement.fixed_cash_cost"
+              },
+              "scenario": {
+                "ref": "scenario.income_statement.fixed_cash_cost"
+              },
+              "delta": {
+                "ref": "delta.income_statement.fixed_cash_cost"
+              }
+            }
+          },
+          {
+            "label": "折旧摊销",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.income_statement.d_and_a"
+              },
+              "scenario": {
+                "ref": "scenario.income_statement.d_and_a"
+              },
+              "delta": {
+                "ref": "delta.income_statement.d_and_a"
+              }
+            }
+          },
+          {
+            "label": "EBITDA",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.income_statement.ebitda"
+              },
+              "scenario": {
+                "ref": "scenario.income_statement.ebitda"
+              },
+              "delta": {
+                "ref": "delta.income_statement.ebitda"
+              }
+            }
+          },
+          {
+            "label": "营业利润",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.income_statement.ebit"
+              },
+              "scenario": {
+                "ref": "scenario.income_statement.ebit"
+              },
+              "delta": {
+                "ref": "delta.income_statement.ebit"
+              }
+            }
+          },
+          {
+            "label": "利息费用",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.income_statement.interest_expense"
+              },
+              "scenario": {
+                "ref": "scenario.income_statement.interest_expense"
+              },
+              "delta": {
+                "ref": "delta.income_statement.interest_expense"
+              }
+            }
+          },
+          {
+            "label": "罚款费用",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.income_statement.penalty_expense"
+              },
+              "scenario": {
+                "ref": "scenario.income_statement.penalty_expense"
+              },
+              "delta": {
+                "ref": "delta.income_statement.penalty_expense"
+              }
+            }
+          },
+          {
+            "label": "存货减值",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.income_statement.inventory_writeoff"
+              },
+              "scenario": {
+                "ref": "scenario.income_statement.inventory_writeoff"
+              },
+              "delta": {
+                "ref": "delta.income_statement.inventory_writeoff"
+              }
+            }
+          },
+          {
+            "label": "应收减值",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.income_statement.receivable_writeoff"
+              },
+              "scenario": {
+                "ref": "scenario.income_statement.receivable_writeoff"
+              },
+              "delta": {
+                "ref": "delta.income_statement.receivable_writeoff"
+              }
+            }
+          },
+          {
+            "label": "税前利润",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.income_statement.profit_before_tax"
+              },
+              "scenario": {
+                "ref": "scenario.income_statement.profit_before_tax"
+              },
+              "delta": {
+                "ref": "delta.income_statement.profit_before_tax"
+              }
+            }
+          },
+          {
+            "label": "所得税",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.income_statement.tax_expense"
+              },
+              "scenario": {
+                "ref": "scenario.income_statement.tax_expense"
+              },
+              "delta": {
+                "ref": "delta.income_statement.tax_expense"
+              }
+            }
+          },
+          {
+            "label": "净利润",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.income_statement.net_income"
+              },
+              "scenario": {
+                "ref": "scenario.income_statement.net_income"
+              },
+              "delta": {
+                "ref": "delta.income_statement.net_income"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "balance_sheet",
+        "title": "资产负债表",
+        "columns": [
+          {
+            "key": "baseline",
+            "label": "基准"
+          },
+          {
+            "key": "scenario",
+            "label": "情景"
+          },
+          {
+            "key": "delta",
+            "label": "变化"
+          }
+        ],
+        "rows": [
+          {
+            "label": "现金",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.balance_sheet.cash"
+              },
+              "scenario": {
+                "ref": "scenario.balance_sheet.cash"
+              },
+              "delta": {
+                "ref": "delta.balance_sheet.cash"
+              }
+            }
+          },
+          {
+            "label": "应收账款",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.balance_sheet.ar"
+              },
+              "scenario": {
+                "ref": "scenario.balance_sheet.ar"
+              },
+              "delta": {
+                "ref": "delta.balance_sheet.ar"
+              }
+            }
+          },
+          {
+            "label": "存货",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.balance_sheet.inventory"
+              },
+              "scenario": {
+                "ref": "scenario.balance_sheet.inventory"
+              },
+              "delta": {
+                "ref": "delta.balance_sheet.inventory"
+              }
+            }
+          },
+          {
+            "label": "固定资产净值",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.balance_sheet.ppe"
+              },
+              "scenario": {
+                "ref": "scenario.balance_sheet.ppe"
+              },
+              "delta": {
+                "ref": "delta.balance_sheet.ppe"
+              }
+            }
+          },
+          {
+            "label": "其他资产",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.balance_sheet.other_assets"
+              },
+              "scenario": {
+                "ref": "scenario.balance_sheet.other_assets"
+              },
+              "delta": {
+                "ref": "delta.balance_sheet.other_assets"
+              }
+            }
+          },
+          {
+            "label": "资产合计",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.balance_sheet.total_assets"
+              },
+              "scenario": {
+                "ref": "scenario.balance_sheet.total_assets"
+              },
+              "delta": {
+                "ref": "delta.balance_sheet.total_assets"
+              }
+            }
+          },
+          {
+            "label": "应付账款",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.balance_sheet.ap"
+              },
+              "scenario": {
+                "ref": "scenario.balance_sheet.ap"
+              },
+              "delta": {
+                "ref": "delta.balance_sheet.ap"
+              }
+            }
+          },
+          {
+            "label": "债务",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.balance_sheet.debt"
+              },
+              "scenario": {
+                "ref": "scenario.balance_sheet.debt"
+              },
+              "delta": {
+                "ref": "delta.balance_sheet.debt"
+              }
+            }
+          },
+          {
+            "label": "其他负债",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.balance_sheet.other_liabilities"
+              },
+              "scenario": {
+                "ref": "scenario.balance_sheet.other_liabilities"
+              },
+              "delta": {
+                "ref": "delta.balance_sheet.other_liabilities"
+              }
+            }
+          },
+          {
+            "label": "负债合计",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.balance_sheet.total_liabilities"
+              },
+              "scenario": {
+                "ref": "scenario.balance_sheet.total_liabilities"
+              },
+              "delta": {
+                "ref": "delta.balance_sheet.total_liabilities"
+              }
+            }
+          },
+          {
+            "label": "权益",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.balance_sheet.equity"
+              },
+              "scenario": {
+                "ref": "scenario.balance_sheet.equity"
+              },
+              "delta": {
+                "ref": "delta.balance_sheet.equity"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "cash_flow_statement",
+        "title": "现金流量表",
+        "columns": [
+          {
+            "key": "baseline",
+            "label": "基准"
+          },
+          {
+            "key": "scenario",
+            "label": "情景"
+          },
+          {
+            "key": "delta",
+            "label": "变化"
+          }
+        ],
+        "rows": [
+          {
+            "label": "经营现金流",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.cash_flow_statement.operating_cash_flow"
+              },
+              "scenario": {
+                "ref": "scenario.cash_flow_statement.operating_cash_flow"
+              },
+              "delta": {
+                "ref": "delta.cash_flow_statement.operating_cash_flow"
+              }
+            }
+          },
+          {
+            "label": "投资现金流",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.cash_flow_statement.investing_cash_flow"
+              },
+              "scenario": {
+                "ref": "scenario.cash_flow_statement.investing_cash_flow"
+              },
+              "delta": {
+                "ref": "delta.cash_flow_statement.investing_cash_flow"
+              }
+            }
+          },
+          {
+            "label": "筹资现金流",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.cash_flow_statement.financing_cash_flow"
+              },
+              "scenario": {
+                "ref": "scenario.cash_flow_statement.financing_cash_flow"
+              },
+              "delta": {
+                "ref": "delta.cash_flow_statement.financing_cash_flow"
+              }
+            }
+          },
+          {
+            "label": "现金净变化",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.cash_flow_statement.net_cash_change"
+              },
+              "scenario": {
+                "ref": "scenario.cash_flow_statement.net_cash_change"
+              },
+              "delta": {
+                "ref": "delta.cash_flow_statement.net_cash_change"
+              }
+            }
+          },
+          {
+            "label": "期初现金",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.cash_flow_statement.opening_cash"
+              },
+              "scenario": {
+                "ref": "scenario.cash_flow_statement.opening_cash"
+              },
+              "delta": {
+                "ref": "delta.cash_flow_statement.opening_cash"
+              }
+            }
+          },
+          {
+            "label": "期末现金",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.cash_flow_statement.closing_cash"
+              },
+              "scenario": {
+                "ref": "scenario.cash_flow_statement.closing_cash"
+              },
+              "delta": {
+                "ref": "delta.cash_flow_statement.closing_cash"
+              }
+            }
+          },
+          {
+            "label": "现金所得税",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.cash_flow_statement.cash_tax_paid"
+              },
+              "scenario": {
+                "ref": "scenario.cash_flow_statement.cash_tax_paid"
+              },
+              "delta": {
+                "ref": "delta.cash_flow_statement.cash_tax_paid"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "operating",
+        "title": "经营指标",
+        "columns": [
+          {
+            "key": "baseline",
+            "label": "基准"
+          },
+          {
+            "key": "scenario",
+            "label": "情景"
+          },
+          {
+            "key": "delta",
+            "label": "变化"
+          }
+        ],
+        "rows": [
+          {
+            "label": "销量",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.operating.sales_volume"
+              },
+              "scenario": {
+                "ref": "scenario.operating.sales_volume"
+              },
+              "delta": {
+                "ref": "delta.operating.sales_volume"
+              }
+            }
+          },
+          {
+            "label": "减值前应收",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.operating.ar_before_writeoff"
+              },
+              "scenario": {
+                "ref": "scenario.operating.ar_before_writeoff"
+              },
+              "delta": {
+                "ref": "delta.operating.ar_before_writeoff"
+              }
+            }
+          },
+          {
+            "label": "减值前存货",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.operating.inventory_before_writeoff"
+              },
+              "scenario": {
+                "ref": "scenario.operating.inventory_before_writeoff"
+              },
+              "delta": {
+                "ref": "delta.operating.inventory_before_writeoff"
+              }
+            }
+          },
+          {
+            "label": "零下限前应税利润",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.operating.taxable_profit_before_floor"
+              },
+              "scenario": {
+                "ref": "scenario.operating.taxable_profit_before_floor"
+              },
+              "delta": {
+                "ref": "delta.operating.taxable_profit_before_floor"
+              }
+            }
+          },
+          {
+            "label": "应税利润",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.operating.taxable_profit"
+              },
+              "scenario": {
+                "ref": "scenario.operating.taxable_profit"
+              },
+              "delta": {
+                "ref": "delta.operating.taxable_profit"
+              }
+            }
+          },
+          {
+            "label": "罚款应付变化",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.operating.penalty_payable_change"
+              },
+              "scenario": {
+                "ref": "scenario.operating.penalty_payable_change"
+              },
+              "delta": {
+                "ref": "delta.operating.penalty_payable_change"
+              }
+            }
+          },
+          {
+            "label": "非受限现金",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.operating.unrestricted_cash"
+              },
+              "scenario": {
+                "ref": "scenario.operating.unrestricted_cash"
+              },
+              "delta": {
+                "ref": "delta.operating.unrestricted_cash"
+              }
+            }
+          },
+          {
+            "label": "可用授信",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.operating.available_credit"
+              },
+              "scenario": {
+                "ref": "scenario.operating.available_credit"
+              },
+              "delta": {
+                "ref": "delta.operating.available_credit"
+              }
+            }
+          },
+          {
+            "label": "可用流动性",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.operating.available_liquidity"
+              },
+              "scenario": {
+                "ref": "scenario.operating.available_liquidity"
+              },
+              "delta": {
+                "ref": "delta.operating.available_liquidity"
+              }
+            }
+          },
+          {
+            "label": "资金缺口",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.operating.funding_gap"
+              },
+              "scenario": {
+                "ref": "scenario.operating.funding_gap"
+              },
+              "delta": {
+                "ref": "delta.operating.funding_gap"
+              }
+            }
+          },
+          {
+            "label": "流动性缺口",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.operating.liquidity_gap"
+              },
+              "scenario": {
+                "ref": "scenario.operating.liquidity_gap"
+              },
+              "delta": {
+                "ref": "delta.operating.liquidity_gap"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "checks",
+        "title": "勾稽残差（应接近零；不会阻止无效输入）",
+        "columns": [
+          {
+            "key": "baseline",
+            "label": "基准"
+          },
+          {
+            "key": "scenario",
+            "label": "情景"
+          }
+        ],
+        "rows": [
+          {
+            "label": "期初资产负债平衡",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.check.opening_balance"
+              },
+              "scenario": {
+                "ref": "scenario.check.opening_balance"
+              }
+            }
+          },
+          {
+            "label": "期末资产负债平衡",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.check.closing_balance"
+              },
+              "scenario": {
+                "ref": "scenario.check.closing_balance"
+              }
+            }
+          },
+          {
+            "label": "现金滚动",
+            "cells": {
+              "baseline": {
+                "ref": "baseline.check.cash_rollforward"
+              },
+              "scenario": {
+                "ref": "scenario.check.cash_rollforward"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "cards": [
+      {
+        "id": "card0",
+        "label": "收入",
+        "ref": "scenario.income_statement.revenue",
+        "baseline_ref": "baseline.income_statement.revenue",
+        "delta_ref": "delta.income_statement.revenue",
+        "unit": "CNY"
+      },
+      {
+        "id": "card1",
+        "label": "净利润",
+        "ref": "scenario.income_statement.net_income",
+        "baseline_ref": "baseline.income_statement.net_income",
+        "delta_ref": "delta.income_statement.net_income",
+        "unit": "CNY"
+      },
+      {
+        "id": "card2",
+        "label": "经营现金流",
+        "ref": "scenario.cash_flow_statement.operating_cash_flow",
+        "baseline_ref": "baseline.cash_flow_statement.operating_cash_flow",
+        "delta_ref": "delta.cash_flow_statement.operating_cash_flow",
+        "unit": "CNY"
+      },
+      {
+        "id": "card3",
+        "label": "现金",
+        "ref": "scenario.balance_sheet.cash",
+        "baseline_ref": "baseline.balance_sheet.cash",
+        "delta_ref": "delta.balance_sheet.cash",
+        "unit": "CNY"
+      }
+    ],
+    "graphs": [
+      {
+        "id": "dag0",
+        "title": "净利润计算依赖",
+        "ref": "scenario.income_statement.net_income",
+        "max_depth": 6
+      },
+      {
+        "id": "dag1",
+        "title": "经营现金流计算依赖",
+        "ref": "scenario.cash_flow_statement.operating_cash_flow",
+        "max_depth": 6
+      },
+      {
+        "id": "dag2",
+        "title": "现金计算依赖",
+        "ref": "scenario.balance_sheet.cash",
+        "max_depth": 6
+      },
+      {
+        "id": "dag3",
+        "title": "资产合计计算依赖",
+        "ref": "scenario.balance_sheet.total_assets",
+        "max_depth": 6
+      }
+    ]
+  },
+  "materials": [
+    {
+      "id": "material-1",
+      "text": "合成公告示例：本业务2026年第一季度售出产品结转的单位材料成本，预计较原计划上升10%，销量、售价和其他成本假设不变。"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "shock-1.evidence.0",
+      "material_id": "material-1",
+      "quote": "合成公告示例：本业务2026年第一季度售出产品结转的单位材料成本，预计较原计划上升10%，销量、售价和其他成本假设不变。"
+    }
+  ],
+  "facts": [],
+  "metadata": {
+    "is_synthetic": true,
+    "notes": "本包只复原原版内置的 goods / turnover 单期间合成示例，不代表实际企业财报。不包含其他五类业务模型、可选机制、业务有效性拒绝、仅方向语义、事件筛选和多事件归因。精确值运算已对照；区间使用通用逐节点保守计算，不能保留原引擎共享符号消元，因此区间差值和未知值可能更宽或未知。基准输入修改后需自行核查会计可行性。滑杆变化为用户假设，原材料只支持初始 +10%。DAG 是原始运算追踪的可计算复原，布局与交互不是原版 UI 复制。 R3展示更新：默认按业务输出折叠真实运算；恒等输出包装被识别为显示锚点，底层公式、输入和计算数值未改。可逐层展开、钻取与切换完整底层；自动显示关系不是经核验的业务因果。仍保留具名输入，不复制原Offline的七列行业分组排版。",
+    "compiler": "material trace -> graph-runtime/1.0",
+    "source_kind": "原版 HTML 内置合成样例"
+  },
+  "current_inputs": {},
+  "provenance": [
+    {
+      "ref": "shock.shock-1",
+      "evidence_ids": [
+        "shock-1.evidence.0"
+      ]
+    }
+  ],
+  "supplements": [
+    {
+      "id": "original-request",
+      "title": "原版输入请求（仅初始快照）",
+      "scope": "initial_snapshot",
+      "content": "{\n  \"schema_version\": \"1.0\",\n  \"entity\": {\n    \"id\": \"demo\",\n    \"name\": \"演示企业（全部为合成数据）\"\n  },\n  \"scope_id\": \"business-a\",\n  \"model_id\": \"goods\",\n  \"currency\": \"CNY\",\n  \"amount_scale\": 1,\n  \"period\": {\n    \"start\": \"2026-01-01\",\n    \"end\": \"2026-03-31\"\n  },\n  \"baseline\": {\n    \"inputs\": {\n      \"fixed_cash_cost\": 100,\n      \"d_and_a\": 20,\n      \"interest_expense\": 10,\n      \"tax_rate\": 0.25,\n      \"opening_cash\": 1000,\n      \"opening_ppe\": 500,\n      \"opening_debt\": 200,\n      \"opening_other_assets\": 0,\n      \"opening_other_liabilities\": 0,\n      \"opening_equity\": 1400,\n      \"opening_ar\": 100,\n      \"opening_inventory\": 100,\n      \"opening_ap\": 100,\n      \"dso\": 9,\n      \"dio\": 18,\n      \"dpo\": 9,\n      \"demand_volume\": 100,\n      \"deliverable_volume\": 200,\n      \"selling_price\": 10,\n      \"unit_material_cost\": 4,\n      \"unit_other_cost\": 2\n    },\n    \"included_event_ids\": [],\n    \"as_of\": \"2025-12-31\"\n  },\n  \"materials\": [\n    {\n      \"id\": \"material-1\",\n      \"text\": \"合成公告示例：本业务2026年第一季度售出产品结转的单位材料成本，预计较原计划上升10%，销量、售价和其他成本假设不变。\"\n    }\n  ],\n  \"shocks\": [\n    {\n      \"id\": \"shock-1\",\n      \"event_id\": \"event-1\",\n      \"driver_id\": \"unit_material_cost\",\n      \"operation\": \"relative\",\n      \"estimate\": {\n        \"kind\": \"exact\",\n        \"value\": 0.1\n      },\n      \"unit\": \"fraction\",\n      \"scope_id\": \"business-a\",\n      \"period\": {\n        \"start\": \"2026-01-01\",\n        \"end\": \"2026-03-31\"\n      },\n      \"provenance\": \"disclosed\",\n      \"evidence\": [\n        {\n          \"material_id\": \"material-1\",\n          \"quote\": \"合成公告示例：本业务2026年第一季度售出产品结转的单位材料成本，预计较原计划上升10%，销量、售价和其他成本假设不变。\"\n        }\n      ]\n    }\n  ]\n}"
+    },
+    {
+      "id": "limits",
+      "title": "复原边界与使用说明",
+      "scope": "static",
+      "content": "本包只复原原版内置的 goods / turnover 单期间合成示例，不代表实际企业财报。不包含其他五类业务模型、可选机制、业务有效性拒绝、仅方向语义、事件筛选和多事件归因。精确值运算已对照；区间使用通用逐节点保守计算，不能保留原引擎共享符号消元，因此区间差值和未知值可能更宽或未知。基准输入修改后需自行核查会计可行性。滑杆变化为用户假设，原材料只支持初始 +10%。DAG 是原始运算追踪的可计算复原，布局与交互不是原版 UI 复制。\n在中文 r2 工作台导入本 JSON；调整“单位材料成本变化率”滑杆；利润表、资产负债表、现金流量表和经营指标同步重算。"
+    }
+  ]
+}

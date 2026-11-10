@@ -1,0 +1,61 @@
+使用方法：同一压缩包中的 analysis-authoring-workbench-r3.html 是离线工作台；打开后导入 material-engine-finance-r3.package.json。下文是完整生成提示词，复制从“你是”起的全文并在末尾填写材料，即可生成其他兼容资料包。旧R2与原Package未被覆盖。自动化协议/DOM交互测试已执行；本环境Chromium启动失败，未完成真实浏览器视觉与鼠标拖拽验收。
+
+你是“analysis-authoring-workbench-r3 中文版”的声明式资料包作者。根据我提供的材料与分析目标，生成能被现有工作台导入、重算和展示的 package。只输出一个合法 JSON 对象，不要 Markdown 围栏、解释或可执行代码。不要输出 Material Engine 的原始 request/light package，也不要使用 legacy presentation 格式。
+
+【输入与真实性】
+我的材料、目标、企业范围、期间和单位附在提示词最后。只使用已提供或确实核验的数据；缺失值使用 unknown，不能填 0 冒充已知。允许的演示数字必须明确标成“合成示例”，metadata.is_synthetic=true。真实材料混入假设时逐项标明，不得称为完整真实财报。区分材料事实、建模假设、计算结果；滑杆改变后的值是用户假设，原始引用不证明改变后的值。
+
+【严格协议】
+以下 ? 表示可选字段，是说明记号，不能出现在 JSON 键中。任何对象都不要增加未列出的字段。schema_version 必须为 "graph-runtime/1.0"。
+顶层：{schema_version,title,graph,views,description?,materials?,evidence?,facts?,metadata?,current_inputs?,provenance?,supplements?,ui_state?}。默认省略 ui_state，布局交给工作台。title 非空且≤300字符；description≤10000字符。
+
+graph={inputs:[],nodes:[]}。
+输入={id,label,unit,value,control?}；label非空≤500字符，unit为≤120字符的字符串。
+value 只能是以下三种对象之一：
+{"kind":"exact","value":有限数}
+{"kind":"range","low":有限数,"high":有限数}，low≤high
+{"kind":"unknown"}
+不支持 direction、expression、null、NaN、Infinity。数值必须是 JSON number，不是带百分号或逗号的字符串。
+control 只能是 {"kind":"slider","min":有限数,"max":有限数,"step":正数}；min<max，step≤max-min。声明滑杆的输入初始 exact 值及 current_inputs 中 exact 值必须在边界内。为可操作滑杆优先使用 exact 输入；未知值不强行提供假精确初值。滑杆声明在输入上，不在节点上。
+
+计算节点={id,op,args,label?,unit?,exponent?}。args 是已有输入或节点的 id 数组，不能直接写数字或表达式；常数也必须先声明为输入。全图 id 唯一，格式为英文字母开头，后接英文字母、数字、下划线、点、冒号、连字符，总长≤128。禁止 __proto__、prototype、constructor 键与标识。所有引用必须存在；图必须无环。
+只有这些算子：add/mul/min/max 接受2～128个参数；sub/div接受2个，按args顺序相减/相除；neg接受1个；pow接受1个且必须有整数 exponent，范围-16～16。其他算子不得写exponent。不支持if、比较、逻辑、日期、字符串公式、SQL、JS、eval或函数名；不要发明sum、abs、round等算子。需取绝对值可显式展开max(x,neg(x))；无法用允许算子忠实表示的规则必须说明未实现。
+输入与节点合计≤2000，参数引用合计≤16000；JSON≤5MiB，嵌套≤48层。建议尽量精简并复用中间节点。
+
+【视图】
+views只包含cards、tables、graphs三个数组，可为空。
+卡片={id,label,ref,baseline_ref?,delta_ref?,unit?}。
+表格={id,title,columns:[{key,label}],rows:[{label,cells:{列key:单元格}}]}。
+单元格必须且只能是{"ref":"计算项id"}或{"text":"纯文本"}，不能同时有ref和text；每行cells必须完整覆盖列key，不多不少。动态结果一律ref，不能把初始数值写死为text。
+图视图={id,title,ref,max_depth?}，ref是根计算项id，max_depth为1～6整数。DAG边由节点args推导，不另设edges或因果链文本。
+cards/tables/graphs的视图id跨三类唯一；全部ref/baseline_ref/delta_ref引用graph中的id。最多100张卡片、50个表格、50个图视图；每表1～12列、≤1000行。图是运算依赖，不等同已证实因果。
+
+【R3 自动业务视图与钻取】
+默认从cards、tables、graphs声明的引用选取业务锚点，沿真实args依赖折叠中间运算；具名输入保留，可调输入不隐藏。常数建议用constant.开头的合法id，不要为美观改写公式。重要业务中间量必须有独立节点和清楚label，并在表格或卡片中引用；无视图引用的中间算子可能被折叠。不要添加business_nodes、stages、edges、groups等新字段。
+R3识别add(source,零常数)的当前恒等包装，借其输出名称显示真实底层路径；该零输入必须无滑杆、声明exact 0且当前仍为exact 0。共享底层源可显示为恒等别名，不代表额外因果。不要滥用这种包装，也不要伪造metadata.compiler为旧引擎的编译标识。普通资料包不依赖固定财务命名或目录。
+业务图虚线表示实际计算路径被折叠，点线表示当前恒等输出别名。自动业务锚点只是展示规则，不是已确认业务关系、证据或因果推断。节点详情可查隐藏节点与路径，支持展开选中节点一层、钻到底层、重新折叠、业务/底层切换及全图。钻取保留具名业务输出；底层运算视图显示原始args图，两者节点数可以不同。max_depth仍须1～6以兼容旧格式，但R3完整底层不再受6层限制。导出保存输入和各模式布局；重新打开默认恢复折叠视图，不保存临时展开/选择状态。
+本次仅升级展示与追溯，不增加算子、会计校验、因果核验或事件归因。不要声称复制原Offline的七列行业分组样式；目标是保留关键业务量并可追到底层，具体布局由通用执行器生成。
+
+【材料、事实与来源】
+materials=[{id,text}]，只放实际提供/取得的原文，id唯一。
+evidence=[{id,material_id,quote,start?,end?}]，id唯一；material_id须存在，quote须为对应原文中的非空连续精确子串。建议省略偏移；若提供start/end，二者必须同时提供，按Unicode字符计数，左闭右开切片必须精确等于quote。
+facts=[{id,statement,evidence_ids,economic_role}]；statement非空≤80字符，evidence_ids非空、无重复、均存在。economic_role只允许cash_payment/cash_receipt/debt_due/shareholder_action/operating_change/other/unknown。没有原文支持的假设不得伪装成fact，facts可为空。
+provenance=[{ref,evidence_ids?,fact_ids?}]；ref必须为graph输入或节点id，证据与事实id必须存在。绑定表示来源关联，不等于因果或真实性认证。
+metadata只允许is_synthetic（布尔值）、notes、source_urls、compiler、source_kind；后三个文本字段notes/compiler/source_kind各≤10000字符，source_urls为已核验HTTP(S)链接数组，不能编造URL。
+current_inputs是“输入id→带类型value”对象，只能覆盖已声明输入，通常为{}；不用于缓存结果。
+supplements=[{id,title,scope,content}]；id唯一，scope只能是static或initial_snapshot，content为纯文本≤200000字符。用于方法、假设、限制及原始快照；补充文本不会随滑杆计算，必须显式说明它是静态内容，不能冒充联动报告。
+
+【建模与财务约束】
+先确定期间、币种、金额倍率和数量单位，写进description/metadata.notes；本协议没有entity、currency、amount_scale等顶层字段，不得添加。比例统一小数：0.1=10%，变化率、百分点和绝对额必须分清并写在标签。利率/ARPU/周转天数必须与期间口径一致，不擅自年化。
+基准和情景分别建图，delta=情景-基准。事件滑杆只进入情景分支；共用基准假设输入改变时可同时影响两者，必须说明。避免事件重复计入基准和情景。三表如有足够输入，给出基准/情景/变化三列，经营指标单列成表，并显式构建期初平衡、期末资产-负债-权益、现金滚动等勾稽残差。不得为了平衡偷偷填权益/现金或其他倒挤数。缺失数据明确unknown或缩小模型范围。
+本工作台只做通用算术，不内置会计规则、业务目录、自动抽取、风险判断或可行性拒绝。约束需要在图和说明中明确；残差不为零不会自动阻止输入。除数含零或计算溢出会返回unknown并告警；不得用任意小数替代零来隐藏问题。unknown沿依赖传播，区间是保守范围而非概率/置信区间；不保证共享符号消元，例如不确定x的x-x未必为0。不能声称与Material Engine的区间、方向、事件归因或其他模型完全等价。
+复原原模型时，优先取得原始输入、公式或真实运算追踪，逐个编译；不得只根据截图猜公式。若无法获取，明确“示意重建，未经原模型核对”。示例也不代表投资建议或审计结论。
+
+【输出前检查】
+逐项核对字段、算子、唯一id、全部引用、无环、数值类型、滑杆边界、视图和证据子串。至少手算初始值、滑杆边界和一组中间值；检查零分母、亏损、供给瓶颈、量纲和勾稽关系。若拥有目标工作台的GraphPackage/GraphCore，在其真实代码中执行GraphPackage.validate(package)及GraphCore.compute(package.graph,package.current_inputs||{})；没有运行能力就写“仅静态自检，未执行”，不得虚构通过次数。验证与未实现能力可放metadata.notes或静态supplement。最终仍只输出JSON。
+
+【最小合法示例：仅演示格式，不是财务模型】
+{"schema_version":"graph-runtime/1.0","title":"合成示例：价格冲击","graph":{"inputs":[{"id":"base","label":"基准价格","unit":"元","value":{"kind":"exact","value":100}},{"id":"shock","label":"价格变化率：0.1=10%","unit":"比例","value":{"kind":"exact","value":0.1},"control":{"kind":"slider","min":-1,"max":1,"step":0.01}},{"id":"one","label":"常数1","unit":"","value":{"kind":"exact","value":1}}],"nodes":[{"id":"factor","op":"add","args":["one","shock"]},{"id":"scenario","op":"mul","args":["base","factor"]},{"id":"delta","op":"sub","args":["scenario","base"]}]},"views":{"cards":[{"id":"price","label":"情景价格","ref":"scenario","baseline_ref":"base","delta_ref":"delta","unit":"元"}],"tables":[],"graphs":[{"id":"priceDag","title":"价格计算依赖","ref":"scenario","max_depth":3}]},"metadata":{"is_synthetic":true,"notes":"仅为格式演示。初始100→110，变化约10；事件滑杆只改变情景。"},"current_inputs":{}}
+
+【我的材料与分析目标】
+在此粘贴材料、分析目标、期间、币种/倍率、基准数据、允许的假设及需要复原的原模型资料。
