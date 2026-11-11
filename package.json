@@ -42,5 +42,10 @@
     "@deepseek-ai/dsh-tools": "0.2.2-rc.1",
     "playwright": "1.56.1"
   },
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "dsh": {
+  "bundle": {
+    "patch": "./cordis.patch.yml"
+  }
+}
 }
