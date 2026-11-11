@@ -1,5 +1,5 @@
 {
-  "name": "dsh-bi-graph",
+  "name": "dsh-view",
   "version": "1.0.0",
   "description": "DSH native tools for the R3 graph analysis runtime",
   "type": "module",
