@@ -1,5 +1,5 @@
 node_modules/
-cordis.patch.yml
+cordis.local.patch.yml
 *.tgz
 artifacts/
 .DS_Store
